@@ -10,7 +10,8 @@
 ;; finding the first letter and reading all of the letters in a single direction
 ;; until the word is completed.
 
-;; You must find all of the strings in the grid.
+;; It tries to find all of the strings in the grid.
+;; Some sample solves can be found at the end of this document.
 
 ;; ====================
 ;; Data Definitions:
@@ -159,7 +160,8 @@
                     "AMD"
                     "RMJ")) ;test for every direction
 
-(define WRDMf (list "RMA"))
+(define WRDMf (list "RAT"
+                    "RMA"))
 
 (define WSEA (list "SEA"
                    "FISH"
@@ -214,6 +216,41 @@
                      "WATER"
                      "YOGURT"
                      "QUINOA"))
+                     
+(define WFOODSf (list "ALMONDS"
+                      "BEANS"
+                      "BROWNRICE"
+                      "CELERY"
+                      "CORN"
+                      "EGGS"
+                      "OATMEAL"
+                      "SALMON"
+                      "TOMATOES"
+                      "WATERMELON"
+                      "ZUCCHINI"
+                      "APPLES"
+                      "REDMEAT"
+                      "BLUEBERRIES"
+                      "CARROTS"
+                      "CHEESE"
+                      "CRANBERRIES"
+                      "LEMONS"
+                      "ORANGES"
+                      "SPINACH"
+                      "PINECONES"
+                      "WALNUTS"
+                      "WHOLEGRAINS"
+                      "BANANAS"
+                      "BROCCOLI"
+                      "CASHEWS"
+                      "CHICKEN"
+                      "CUCUMBERS"
+                      "LETTUCE"
+                      "POTATOES"
+                      "TOFU"
+                      "WATER"
+                      "YOGURT"
+                      "QUINOA"))
 
 
 ;; ==================
@@ -243,7 +280,10 @@
                                     (list)
                                     (list (make-pos 0 0)
                                           (make-pos 1 0))))
-(check-expect (solve G3RDM WRDMf) (list (list)))
+(check-expect (solve G3RDM WRDMf) (list (list (make-pos 0 0)
+                                              (make-pos 1 0)
+                                              (make-pos 2 0))
+                                        (list)))
 (check-expect (solve G3RDM WRDM2) (list (list (make-pos 2 2)
                                               (make-pos 1 1)
                                               (make-pos 0 0))
@@ -538,30 +578,72 @@
 
 
 ;; Grid WordList -> Image
-;; renders a word search with all of the letters that are in words circled
+;; renders a word search with all of the letters that are in words circled and word list beside
 
 (check-expect (render G1I empty)
               (overlay (text "I" TEXT-SIZE TEXT-COLOR) BG))
 (check-expect (render G1I WI)
-              (overlay CORRECT (text "I" TEXT-SIZE TEXT-COLOR) BG))
-(check-expect (render G3RDM WRDM1)
-              (above (beside (overlay CORRECT (text "R" TEXT-SIZE TEXT-COLOR) BG)
-                             (overlay CORRECT (text "A" TEXT-SIZE TEXT-COLOR) BG)
-                             (overlay CORRECT (text "T" TEXT-SIZE TEXT-COLOR) BG))
-                     (beside (overlay (text "E" TEXT-SIZE TEXT-COLOR) BG)
-                             (overlay (text "M" TEXT-SIZE TEXT-COLOR) BG)
-                             (overlay (text "P" TEXT-SIZE TEXT-COLOR) BG))
-                     (beside (overlay (text "X" TEXT-SIZE TEXT-COLOR) BG)
-                             (overlay (text "D" TEXT-SIZE TEXT-COLOR) BG)
-                             (overlay (text "J" TEXT-SIZE TEXT-COLOR) BG))))
+              (beside (overlay CORRECT (text "I" TEXT-SIZE TEXT-COLOR) BG)
+                      (square 30 "solid" "white")
+                      (local [(define word (text "I" (- TEXT-SIZE 2) TEXT-COLOR))]
+                        (add-line word
+                                  0
+                                  (/ (image-height word) 2)
+                                  (image-width word)
+                                  (/ (image-height word) 2)
+                                  "red"))))
+(check-expect (render G3RDM WRDMf)
+              (beside (above (beside (overlay CORRECT (text "R" TEXT-SIZE TEXT-COLOR) BG)
+                                     (overlay CORRECT (text "A" TEXT-SIZE TEXT-COLOR) BG)
+                                     (overlay CORRECT (text "T" TEXT-SIZE TEXT-COLOR) BG))
+                             (beside (overlay (text "E" TEXT-SIZE TEXT-COLOR) BG)
+                                     (overlay (text "M" TEXT-SIZE TEXT-COLOR) BG)
+                                     (overlay (text "P" TEXT-SIZE TEXT-COLOR) BG))
+                             (beside (overlay (text "X" TEXT-SIZE TEXT-COLOR) BG)
+                                     (overlay (text "D" TEXT-SIZE TEXT-COLOR) BG)
+                                     (overlay (text "J" TEXT-SIZE TEXT-COLOR) BG)))
+                      (square 30 "solid" "white")
+                      (above (local [(define word (text "RAT" (- TEXT-SIZE 2) TEXT-COLOR))]
+                               (add-line word
+                                         0
+                                         (/ (image-height word) 2)
+                                         (image-width word)
+                                         (/ (image-height word) 2)
+                                         "red"))
+                             (text "RMA" (- TEXT-SIZE 2) TEXT-COLOR))))
 
 ;<template from generative recursion>
 
 (define (render g los)
   ;; p is Pos ; current location in g
   
-  (local [(define corrects (collapse (solve g los)))
+  (local [(define solved (solve g los))
+          (define corrects (collapse solved))
           (define side (sqrt (length g)))
+          
+          (define (render-both p)
+            (if (empty? los) 
+                (render-board p)
+                (beside (render-board p)
+                        (square 30 "solid" "white")
+                        (render-wl los solved))))
+
+          (define (render-wl los slvd)
+            (cond [(empty? los) empty-image]
+                  [else
+                   (above (render-word (first los) (first slvd))
+                          (render-wl (rest los) (rest slvd)))]))
+          
+          (define (render-word str lop)
+            (local [(define word-image (text str (- TEXT-SIZE 2) TEXT-COLOR))]
+              (if (empty? lop)
+                  word-image
+                  (add-line word-image
+                            0
+                            (/ (image-height word-image) 2)
+                            (image-width word-image)
+                            (/ (image-height word-image) 2)
+                            "red"))))
           
           (define (render-board p)
             (if (>= (pos-y p) side)
@@ -587,7 +669,7 @@
                 CORRECT
                 empty-image))]
     
-    (render-board (make-pos 0 0))))
+    (render-both (make-pos 0 0))))
 
 
 ;; (listof Unit) -> Unit
@@ -612,5 +694,8 @@
 (define (collapse lou)
   (foldr append empty lou))
 
-
+;; This call will show a completed word search
 ;(render GFOODS WFOODS)
+
+;; This call will show a word search where two words could not be found (because they do not exist in the puzzle)
+;(render GFOODS WFOODSf)
